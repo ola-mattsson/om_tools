@@ -33,14 +33,13 @@ class CURL_handle {
     CURL* curl;
     CURLcode result;
 public:
-    CURL_handle()
+    explicit CURL_handle(bool verbose = false)
             :curl(curl_easy_init()), result(CURLE_OK) {
         set_option(CURLOPT_FAILONERROR, 1L);
-#if VERBOSE
-        if (curl) {
+
+        if (curl && verbose) {
             set_option(CURLOPT_VERBOSE, 1L);
         }
-#endif
     }
 
     ~CURL_handle() {

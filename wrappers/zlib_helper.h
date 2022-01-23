@@ -104,7 +104,6 @@ void example() {
 #include <zlib.h>
 
 #endif
-#include <boost/static_assert.hpp>
 
 // build with ZLIB_HELPER_STACK_BUFFER 0 to use a vector/dynamic
 // memory for the buff
