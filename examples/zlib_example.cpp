@@ -12,10 +12,10 @@
 
 #include <iostream>
 #include <fstream>
-#include <zlib_helper.h>
+#include <zlib_wrapper.h>
 
 int main() {
-    namespace ou = olas_utils;
+    namespace ou = om_tools::zlib_helper;
     static const size_t K_BYTE = 1024;
     static const size_t BUFF_SIZE = K_BYTE;
 
@@ -24,7 +24,7 @@ int main() {
         if (read_this.is_open()) {
             std::ofstream compressed("Makefile.gz");
 
-            ou::zlib_helper<std::ofstream> deflator(compressed);
+            ou::zlib<std::ofstream> deflator(compressed);
             deflator.init_compression(ou::GZIP);
 
             do {
@@ -56,7 +56,7 @@ int main() {
         std::ifstream read_this("Makefile.gz");
         if (read_this.is_open()) {
             ou::string_writer to_this(str);
-            ou::zlib_helper<ou::string_writer> inflator(to_this);
+            ou::zlib<ou::string_writer> inflator(to_this);
             inflator.init_decompression(ou::GZIP);
             do {
                 char buff[BUFF_SIZE] = {};
@@ -65,7 +65,7 @@ int main() {
             } while (!read_this.eof());
         }
     }
-    // dump it on a file, simple. this is not optimal if BIGGER data amounts
+    // dump it on a file, simple.
     std::ofstream decompressed("Makefile.copy");
     decompressed << str;
     decompressed.close();
@@ -78,7 +78,7 @@ int main() {
     // the compressor is finished and the file is closed manually below
     std::ifstream read_from_this("Makefile.gz");
     std::ofstream write_to_this("Makefile_decomp");
-    ou::zlib_helper<std::ofstream> decomp(write_to_this);
+    ou::zlib<std::ofstream> decomp(write_to_this);
     decomp.init_decompression(ou::GZIP);
     do {
         char buff[BUFF_SIZE] = {};
@@ -91,7 +91,6 @@ int main() {
     write_to_this.close();
 
     assert(system("diff Makefile Makefile_decomp") == 0);
-
 
     // how simple it can get
     std::ifstream in_thing("Makefile");
