@@ -1,6 +1,6 @@
 /**
  * compress one buffer instead of an in and an out ditto
- * WIP
+ * WIP doesn't work yet, I think
  */
 
 #include <iostream>
@@ -20,4 +20,5 @@ int main() {
     comp.compress(data.c_str(), data.size());
 
     std::cout << "done\n";
+    return 0;
 }

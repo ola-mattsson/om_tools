@@ -6,6 +6,8 @@ message(STATUS "CMAKE_MODULE_PATH ${}CMAKE_MODULE_PATH}")
 
 include(compiler_setup.cmake)
 
+enable_testing()
 
 add_subdirectory(wrappers)
 add_subdirectory(examples)
+add_subdirectory(unittests)
