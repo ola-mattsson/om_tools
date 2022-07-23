@@ -8,13 +8,15 @@
 
 #include <descriptors.h>
 
+std::atomic<bool> server_up = false;
 
 int main(int argc, char **argv) {
     const std::vector<const std::string_view> args(argv, argv + argc);
 
     auto server_worker = []() {
-        auto server = om_tools::socket_fd::create_server_socket(12345);
+        auto server = om_tools::socket_fd::create_server_socket("12345");
         while (server.valid()) {
+            server_up = true;
             auto client = server.wait_request();
             if (client.valid()) {
                 auto write_result = write(client.get(), "HEJ", 3);
@@ -25,6 +27,11 @@ int main(int argc, char **argv) {
     };
 
     auto client_worker = []() {
+        // hack to make sure server thread is up
+        while (!server_up) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+
         auto client = om_tools::socket_fd::create_client_socket("127.0.0.1", "12345");
 
         if (client.valid()) {

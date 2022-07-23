@@ -9,10 +9,6 @@
  * https://youtu.be/rUESOjhvLw0
  */
 
-#if __cplusplus <= 201103L
-// TODO make less standard reliant
-#error C++11 and above only
-#endif
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <unistd.h>
@@ -59,11 +55,10 @@ public:
         return *this;
     }
 
-    ~descriptor_base() { if (valid()) { close_socket(); }}
+    ~descriptor_base() { if (valid()) { close(); }}
 
-    void close_socket() const {
-        std::cout << "Closing socket\n";
-        close(fd);
+    void close() const {
+        ::close(fd);
     }
 
     [[nodiscard]]
@@ -85,8 +80,8 @@ public:
     [[nodiscard]]
     socket_fd wait_request() const;
 
-    static socket_fd create_server_socket(int32_t port);
-    static socket_fd create_client_socket(const char* host, int32_t port);
+    static socket_fd create_server_socket(std::string_view port);
+    static socket_fd create_client_socket(std::string_view host, std::string_view port);
 };
 
 /**
@@ -114,11 +109,37 @@ inline void socket_fd::wait_request(const socket_fd &server_socket) {
     }
 }
 
-inline socket_fd socket_fd::create_server_socket(int32_t port) {
+class addr_info {
+    using addrinfo_type = std::unique_ptr<addrinfo, decltype(&freeaddrinfo)>;
 
-    sockaddr_in addr = {};
+    addrinfo_type address{nullptr, freeaddrinfo};
+public:
 
-    socket_fd sock(socket(AF_INET, SOCK_STREAM, 0));
+    addrinfo_type & getaddrinfo(std::string_view host, std::string_view port, std::optional<addrinfo> hints = {}) {
+        if (!hints) {
+            hints = addrinfo{};
+            hints->ai_family = AF_INET;
+            hints->ai_socktype = SOCK_STREAM;
+            hints->ai_flags = host.empty() ? AI_PASSIVE : 0; // fit for bind
+            hints->ai_protocol = 0;
+        }
+        addrinfo *result = nullptr;
+        if (int s = ::getaddrinfo(host.empty() ? nullptr : host.data(), port.data(),
+                                    &hints.value(), &result); s != 0) {
+            fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
+            exit(EXIT_FAILURE);
+        }
+        address.reset(result);
+        return address;
+    }
+};
+
+inline socket_fd socket_fd::create_server_socket(std::string_view  port) {
+
+    addr_info address;
+    auto& result = address.getaddrinfo("", port.data());
+
+    socket_fd sock(socket(result->ai_family, result->ai_socktype, result->ai_protocol));
     int opt_val = 1;
     if (int opt_res = setsockopt(sock.get(), SOL_SOCKET, SO_REUSEADDR, &opt_val, sizeof opt_val); opt_res != 0) {
         std::cout << "upps " << opt_res << '\n';
@@ -129,39 +150,33 @@ inline socket_fd socket_fd::create_server_socket(int32_t port) {
         exit(EXIT_FAILURE);
     }
 
+    auto port_short = static_cast<int16_t>(std::strtol(port.data(), nullptr, 10));
+    sockaddr_in addr = {};
     addr.sin_family = AF_INET;
-    addr.sin_port = htons(port);
-//    addr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    addr.sin_port = htons(port_short);
     addr.sin_addr.s_addr = htonl(INADDR_ANY);
+
 
     if (bind(sock.get(), reinterpret_cast<sockaddr *>(&addr), sizeof addr) == -1) {
         perror("bind");
+        exit(EXIT_FAILURE);
     }
 
     if (sock.valid() && listen(sock.get(), SOMAXCONN) == -1) {
         perror("listen");
+        exit(EXIT_FAILURE);
     }
 
     return sock;
 }
 
-socket_fd socket_fd::create_client_socket(const char *host, const char* port) {
+socket_fd socket_fd::create_client_socket(std::string_view host, std::string_view  port) {
 
-    addrinfo hints = {};
-
-    hints.ai_family     = AF_UNSPEC;
-    hints.ai_socktype   = SOCK_STREAM;
-    hints.ai_flags      = AI_NUMERICHOST;
-    hints.ai_protocol = 0;
-
-    addrinfo *result = nullptr;
-    if (int s = getaddrinfo(host, port, &hints, &result); s != 0) {
-        fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
-        exit(EXIT_FAILURE);
-    }
+    addr_info address;
+    auto &result = address.getaddrinfo(host.data(), port.data());
 
     socket_fd client_socket;
-    for (addrinfo *rp = result; rp != nullptr; rp = rp->ai_next) {
+    for (addrinfo *rp = result.get(); rp != nullptr; rp = rp->ai_next) {
         client_socket.set(socket(rp->ai_family, rp->ai_socktype,
                                          rp->ai_protocol));
         if (!client_socket.valid()) {
@@ -176,7 +191,6 @@ socket_fd socket_fd::create_client_socket(const char *host, const char* port) {
         }
     }
 
-    freeaddrinfo(result);
     return client_socket;
 }
 
