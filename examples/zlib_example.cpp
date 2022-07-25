@@ -12,7 +12,7 @@
  */
 
 #include <iostream>
-#include <vector>
+#include <sstream>
 #include <fstream>
 #include <zlib_wrapper.h>
 
@@ -95,37 +95,19 @@ int main() {
 
     assert(system("diff Makefile Makefile_decomp") == 0);
 
-    // as simple as it gets
-    std::ifstream in_thing("Makefile");
-    std::ofstream out_thing("Makefile_1");
-    if (in_thing.is_open() && out_thing.is_open()) {
-        ot::compress(in_thing, out_thing);
-        in_thing.close();
-        out_thing.close();
-    }
-
     {
-        std::ifstream deflated("Makefile_1", std::ios::binary);
-        if (deflated.is_open()) {
-            deflated.seekg(0, std::ios::end);
-            std::streamoff size = deflated.tellg();
-            deflated.seekg(0, std::ios::beg);
-
-            std::vector<char> buffer(size);
-            deflated.read(&buffer[0], size + 1);
-            deflated.close();
-
-            std::string inflated;
-            ot::string_writer writer(inflated);
-            ot::zlib<ot::string_writer> inflator(writer);
-            inflator.init_decompression(ot::GZIP);
-            inflator.decompress(&buffer[0], buffer.size());
-
-            std::cout << "\n";
+        std::ifstream in_thing("Makefile");
+        std::ofstream out_thing("Makefile_1");
+        if (in_thing.is_open() && out_thing.is_open()) {
+            ot::zlib<std::ofstream> compressor(out_thing);
+            compressor.init_compression(ot::GZIP);
+            do {
+                char buff[1024] = {};
+                in_thing.read(buff, 1024);
+                compressor.add(buff, in_thing.gcount());
+            } while (!in_thing.eof());
         }
     }
-
-
 
     std::cout << "done\n";
 }
