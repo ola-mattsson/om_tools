@@ -16,6 +16,21 @@
 #include <fstream>
 #include <zlib_wrapper.h>
 
+void compress(const char *from, const char *to) {
+    namespace ot = om_tools::zlib_helper;
+    std::ifstream from_file(from);
+    std::ofstream to_file(to);
+    if (from_file.is_open() && to_file.is_open()) {
+        ot::zlib <std::ofstream> compressor(to_file);
+        compressor.init_compression(ot::GZIP);
+        do {
+            char buff[1024] = {};
+            from_file.read(buff, 1024);
+            compressor.add(buff, from_file.gcount());
+        } while (!from_file.eof());
+    }
+}
+
 int main() {
     namespace ot = om_tools::zlib_helper;
     static const size_t K_BYTE = 1024;
@@ -97,7 +112,7 @@ int main() {
 
     {
         std::ifstream in_thing("Makefile");
-        std::ofstream out_thing("Makefile_1");
+        std::ofstream out_thing("Makefile.gz");
         if (in_thing.is_open() && out_thing.is_open()) {
             ot::zlib<std::ofstream> compressor(out_thing);
             compressor.init_compression(ot::GZIP);
@@ -108,6 +123,7 @@ int main() {
             } while (!in_thing.eof());
         }
     }
+
 
     std::cout << "done\n";
 }

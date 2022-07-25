@@ -1,5 +1,5 @@
 /**
- * compress one buffer instead of an in and an out ditto
+ * deflate one buffer instead of an in and an out ditto
  * WIP doesn't work yet, I think
  */
 
@@ -17,7 +17,7 @@ int main() {
     ot::string_writer writer(data);
 
     ot::zlib<ot::string_writer> comp(writer);
-    comp.compress(data.c_str(), data.size());
+    comp.deflate(data.c_str(), data.size());
 
     std::cout << "done\n";
     return 0;

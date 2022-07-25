@@ -22,6 +22,9 @@
 namespace om_tools {
 
     namespace curl_helper {
+#if __cplusplus >= 201103L
+    inline namespace v1_0_0 {
+#endif
         // instantiate this in main to avoid
         // repeated calls, not a huge deal but seems unnecessary
         struct curl_initialise {
@@ -35,7 +38,7 @@ namespace om_tools {
         };
 
          __attribute__((unused))
-         typedef curl_initialise curl_initialize; // oh never mind hehe it is Colour and tomaaaato, not tomaydo
+         typedef curl_initialise curl_initialize; // oh never mind hehe it is Colour and tomaaaato, not tomaydo and Color
 
         /**
          * No nonsense C++ wrapper around libcurl easy api that works even in C++98\n\n
@@ -187,6 +190,13 @@ namespace om_tools {
 
             curl_slist *get() const { return slist; }
         };
+#if __cplusplus >= 201103L
     }
+#endif
+    }
+using curl_helper::curl_initialise;
+using curl_helper::curl_initialize;
+using curl_helper::curl_slist_handle;
+using curl_helper::Curl_handle;
 }
 
