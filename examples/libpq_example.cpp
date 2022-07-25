@@ -141,10 +141,10 @@ void varchars() {
 }
 int main() {
     try {
-        varchars();
         if (!has_data()) {
             create_data();
         }
+//        varchars(); todo create a table for this test
         pass_params();
         print_all();
         count();

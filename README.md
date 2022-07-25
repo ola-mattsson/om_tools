@@ -22,7 +22,7 @@ There is a conanfile.py, but you don't have to use it. Some dependencies have Fi
 
 Uses all the well known options and structures declared by curl but in a slightly cleaner way. 
 This example is compact but "hides" nothing other than the actual freeing of the curl object, the C++ way.
-```
+```c++
 const char* headers[] = {"Content-Type: application/text", "charset: utf-8", ""};
 const curl_slist_handle slist(headers);
 bool success =
@@ -38,7 +38,7 @@ bool success =
 ## zlib
 
 Deflates and inflates data to anything that responds to `void write(const char *b, size_t size)` such as std::ofstream. A string_writer is provided that compresses to a std::string you provide.
-```
+```c++
 void compress(const char *from, const char *to) {
     namespace ot = om_tools::zlib_helper;
     std::ifstream from_file(from);
@@ -59,3 +59,21 @@ void compress(const char *from, const char *to) {
 ## libpq
 
 All libpg C++ interfaces seems to be C++11 or higher, I needed one for 98.
+This does a simple select, passes a parameter and extracts the result.
+scoped_result
+
+```c++
+    std::string stmt = "select i, c from a where id = $1;";
+    ot::params params;
+    params.add(2);
+    ot::scoped_result result(default_connection().exec(stmt, params));
+
+    if (result) {
+        int32_t i = result.get_value<int32_t>(0, 2);
+        std::string s = result.get_value<std::string>(0, 2);
+
+        std::cout << s << '|' << i << '\n';
+    }
+```
+
+
