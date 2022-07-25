@@ -8,14 +8,16 @@
  * The example blocks are surrounded with { and } to show how scope matters,
  * in case you are new to C++. Those blocks could be functions,
  * however, the last example shows how this optional
+ * If you are new to C++ and this makes no sense, check out Jason Turners "Object Lifetime Puzzlers book"
  */
 
 #include <iostream>
+#include <vector>
 #include <fstream>
 #include <zlib_wrapper.h>
 
 int main() {
-    namespace ou = om_tools::zlib_helper;
+    namespace ot = om_tools::zlib_helper;
     static const size_t K_BYTE = 1024;
     static const size_t BUFF_SIZE = K_BYTE;
 
@@ -24,8 +26,8 @@ int main() {
         if (read_this.is_open()) {
             std::ofstream compressed("Makefile.gz");
 
-            ou::zlib<std::ofstream> deflator(compressed);
-            deflator.init_compression(ou::GZIP);
+            ot::zlib<std::ofstream> deflator(compressed);
+            deflator.init_compression(ot::GZIP);
 
             do {
                 char buff[BUFF_SIZE] = {};
@@ -55,9 +57,9 @@ int main() {
     {
         std::ifstream read_this("Makefile.gz");
         if (read_this.is_open()) {
-            ou::string_writer to_this(str);
-            ou::zlib<ou::string_writer> inflator(to_this);
-            inflator.init_decompression(ou::GZIP);
+            ot::string_writer to_this(str);
+            ot::zlib<ot::string_writer> inflator(to_this);
+            inflator.init_decompression(ot::GZIP);
             do {
                 char buff[BUFF_SIZE] = {};
                 read_this.read(buff, BUFF_SIZE);
@@ -66,9 +68,10 @@ int main() {
         }
     }
     // dump it on a file, simple.
-    std::ofstream decompressed("Makefile.copy");
-    decompressed << str;
-    decompressed.close();
+    {
+        std::ofstream decompressed("Makefile.copy");
+        decompressed << str;
+    }
     assert(system("diff Makefile Makefile.copy") == 0);
 
 
@@ -78,8 +81,8 @@ int main() {
     // the compressor is finished and the file is closed manually below
     std::ifstream read_from_this("Makefile.gz");
     std::ofstream write_to_this("Makefile_decomp");
-    ou::zlib<std::ofstream> decomp(write_to_this);
-    decomp.init_decompression(ou::GZIP);
+    ot::zlib<std::ofstream> decomp(write_to_this);
+    decomp.init_decompression(ot::GZIP);
     do {
         char buff[BUFF_SIZE] = {};
         read_from_this.read(buff, BUFF_SIZE);
@@ -92,13 +95,34 @@ int main() {
 
     assert(system("diff Makefile Makefile_decomp") == 0);
 
-    // how simple it can get
+    // as simple as it gets
     std::ifstream in_thing("Makefile");
     std::ofstream out_thing("Makefile_1");
     if (in_thing.is_open() && out_thing.is_open()) {
-        ou::compress(in_thing, out_thing);
+        ot::compress(in_thing, out_thing);
         in_thing.close();
         out_thing.close();
+    }
+
+    {
+        std::ifstream deflated("Makefile_1", std::ios::binary);
+        if (deflated.is_open()) {
+            deflated.seekg(0, std::ios::end);
+            std::streamoff size = deflated.tellg();
+            deflated.seekg(0, std::ios::beg);
+
+            std::vector<char> buffer(size);
+            deflated.read(&buffer[0], size + 1);
+            deflated.close();
+
+            std::string inflated;
+            ot::string_writer writer(inflated);
+            ot::zlib<ot::string_writer> inflator(writer);
+            inflator.init_decompression(ot::GZIP);
+            inflator.decompress(&buffer[0], buffer.size());
+
+            std::cout << "\n";
+        }
     }
 
 
