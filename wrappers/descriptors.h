@@ -25,37 +25,40 @@ struct descriptor_base {
     static const descriptor_type invalid_socket = -1;
 private:
     descriptor_type fd{invalid_socket};
-protected:
-    void set(descriptor_type desc) {
-        fd = desc;
-    }
 public:
-    [[nodiscard]]
-    descriptor_type get() const {
-        return fd;
-    }
     descriptor_base() = default;
 
     explicit descriptor_base(descriptor_type fd_) : fd(fd_) {}
 
+    // cannot be copied
     explicit descriptor_base(const descriptor_base &) = delete;
 
-    descriptor_base &operator=(const descriptor_base &other) = delete;
-
-    // move constructor
+    // can be moved, the source will be invalidated
     descriptor_base(descriptor_base &&other) noexcept {
         fd = other.fd;
         other.fd = -1;
     }
 
-    // move assignment
+    // close if valid
+    ~descriptor_base() { if (valid()) { close(); }}
+
+    // cannot be copy assigned
+    descriptor_base &operator=(const descriptor_base &other) = delete;
+
+    // can be move-assigned, the source will be invalidated
     descriptor_base &operator=(descriptor_base &&other) noexcept {
         fd = other.fd;
         other.fd = -1;
         return *this;
     }
 
-    ~descriptor_base() { if (valid()) { close(); }}
+    void set(descriptor_type desc) {
+        fd = desc;
+    }
+    [[nodiscard]]
+    descriptor_type get() const {
+        return fd;
+    }
 
     void close() const {
         ::close(fd);
@@ -66,8 +69,10 @@ public:
 
     explicit operator descriptor_type() const { return fd; }
 
-
 };
+
+// no need to declare a class for file sockets, this is done so just provide an alias
+using file_socket = descriptor_base;
 
 class socket_fd : public descriptor_base {
 
@@ -200,4 +205,5 @@ socket_fd socket_fd::create_client_socket(std::string_view host, std::string_vie
 // export to om_tools
 using descriptors::descriptor_base;
 using descriptors::socket_fd;
+using descriptors::file_socket;
 }

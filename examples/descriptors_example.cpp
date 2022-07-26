@@ -7,10 +7,41 @@
 #include <optional>
 
 #include <descriptors.h>
+#include <sys/file.h>
 
 std::atomic<bool> server_up = false;
 
+void inet_socket(int argc, char **argv);
+void file_socket();
+
 int main(int argc, char **argv) {
+    inet_socket(argc, argv);
+
+    file_socket();
+}
+
+om_tools::file_socket open_file(std::string_view name, int32_t flags) {
+    om_tools::file_socket file_d(open("a_file.txt", flags));
+    if (!file_d.valid()) {
+        perror("open");
+        // return a new, invalid
+        return {};
+    }
+    else {
+        // moved out since it can't be copied.
+        // if the descriptor could be copied the original
+        // would be closed when going out of scope
+        return file_d;
+    }
+}
+
+void file_socket() {
+    auto file_d = open_file("a_file.txt", O_WRONLY);
+    std::string_view data = "Something important";
+    write(file_d.get(), data.data(), data.size());
+}
+
+void inet_socket(int argc, char **argv) {
     const std::vector<const std::string_view> args(argv, argv + argc);
 
     auto server_worker = []() {

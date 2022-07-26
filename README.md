@@ -77,3 +77,25 @@ scoped_result
 ```
 
 
+## Descriptors
+File and inet descriptors.
+Wrapping a descriptor (int) has one problem, a factory function needs to pass a valid object holding the int and let the caller close it. hmm, move semantics to the rescue. 
+These objects can be passed around safely and will be closed, if valid, when going out of scope. When assigned from each other and returned from functions they are moved and the original will be invalidated, so they don't accidentally close unintentionally.
+
+Example, open a file
+```c++
+om_tools::file_socket open_file(std::string_view name, int32_t flags) {
+    om_tools::file_socket file_d(open("a_file.txt", flags));
+    if (!file_d.valid()) {
+        perror("open");
+        // return a new, invalid object
+        return {};
+    }
+    else {
+        // moved out since it can't be copied.
+        // if the descriptor would be copied, the original
+        // would be closed when going out of scope.
+        return file_d;
+    }
+}
+```
