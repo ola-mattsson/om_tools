@@ -1,12 +1,13 @@
 cmake_minimum_required(VERSION 3.21)
-project(appola_toolsbox)
-
+project(om_tools)
+message(STATUS "CMAKE_MODULE_PATH ${}CMAKE_MODULE_PATH}")
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_BINARY_DIR})
+message(STATUS "CMAKE_MODULE_PATH ${}CMAKE_MODULE_PATH}")
+
 include(compiler_setup.cmake)
-find_package(Boost REQUIRED)
-find_package(ZLIB REQUIRED)
-find_package(CURL REQUIRED)
-find_package(PostgreSQL REQUIRED)
+
+enable_testing()
 
 add_subdirectory(wrappers)
 add_subdirectory(examples)
+add_subdirectory(unittests)

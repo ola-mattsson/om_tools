@@ -32,6 +32,9 @@ target_compile_options(compiler_flags INTERFACE
         "$<${clang}:$<BUILD_INTERFACE:${CLANG_WARNING_FLAGS};${SANITIZE};${SANITIZE_FLAGS}>>"
         "$<${gcc}:$<BUILD_INTERFACE:${GCC_WARNING_FLAGS};${SANITIZE};${SANITIZE_FLAGS}>>"
         "$<${msvc_cxx}:$<BUILD_INTERFACE:-W3>>"
+
+        # explicitly pass an include file
+        --include ${PROJECT_SOURCE_DIR}/global_include.h
         )
 target_link_options(compiler_flags
         INTERFACE
@@ -47,9 +50,9 @@ target_compile_definitions(compiler_flags
         INTERFACE
         )
 
-
-# override target_link_libraries, makes sure all links to compiler_flags.
+# override target_link_libraries, makes sure all has the compiler_flags.
+# normal parameters are added before so OU::compiler flags gets whatever
+# access was provided last but that is not a problem here
 function(target_link_libraries _name_)
-#        message(STATUS "${_name_} links to: ${ARGN}, adding compiler flags")
         _target_link_libraries(${_name_} ${ARGN} OU::compiler_flags)
 endfunction()

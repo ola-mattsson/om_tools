@@ -9,10 +9,10 @@ class AppOlaToolsConan(ConanFile):
 
     def requirements(self):
         self.requires("boost/1.76.0")
-        self.requires("zlib/1.2.11")
+        self.requires("zlib/1.2.12")
         self.requires("libpq/11.11")
-        self.requires("libpqxx/7.7.0")
-        self.requires("libcurl/7.80.0")
+        # self.requires("libpqxx/7.7.0")
+        self.requires("libcurl/7.75.0")
         self.requires("gtest/cci.20210126")
 
     # def build_requirements(self):
