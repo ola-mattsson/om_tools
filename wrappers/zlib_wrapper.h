@@ -253,15 +253,15 @@ namespace om_tools {
             EXPLICIT operator bool() const { return initialised; }
 
             // Initialise the object for compression
-            zlib &init_compression(FORMAT compression_format = DEFLATE,
-                                   int compression_level = Z_DEFAULT_COMPRESSION) NOTHROW {
+            zlib &init_deflate(FORMAT compression_format = DEFLATE,
+                               int compression_level = Z_DEFAULT_COMPRESSION) NOTHROW {
                 direction = DEFLATING;
                 return initialise(compression_format, compression_level);
             }
 
             // Initialise the object for decompression
-            zlib &init_decompression(FORMAT compression_format = DEFLATE,
-                                     int compression_level = Z_DEFAULT_COMPRESSION) NOTHROW {
+            zlib &init_inflate(FORMAT compression_format = DEFLATE,
+                               int compression_level = Z_DEFAULT_COMPRESSION) NOTHROW {
                 direction = INFLATING;
                 return initialise(compression_format, compression_level);
             }
@@ -317,13 +317,41 @@ namespace om_tools {
             };
         };
 
+        // Helper class that allows for a std::string to be compressed
+        // to itself.
+        // WIP, needs a lot of testing. If data doesn't compress very
+        // well the compressed section might overlap the not yet
+        // processed section.
+        // https://stackoverflow.com/a/12412863
+        class same_string_writer {
+            std::string &str;
+            std::string::size_type offset;
+        public:
+            explicit same_string_writer(std::string &ins) : str(ins), offset(0) {}
+
+            void write(const char *b, size_t size) NOTHROW {
+                try {
+                    // copy into space already processed
+                    memcpy(&str[offset], b, size);
+                    offset += size;
+                } catch (const std::exception &e) {
+                    std::cout << e.what() << '\n';
+                }
+            };
+
+            // truncate the string to it's compressed size.
+            void truncate() {
+                str.resize(offset);
+            }
+        };
+
 
         // another example, IN and OUT needs to implement
         // read and write, like ifstream/ofstream.
         template<typename IN, typename OUT>
         bool compress(IN &source, OUT &target) {
             zlib<OUT> compressor(target);
-            compressor.init_compression(GZIP);
+            compressor.init_deflate(GZIP);
             do {
                 char buff[1024] = {};
                 source.read(buff, 1024);

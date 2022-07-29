@@ -51,7 +51,7 @@ void compress(const char *from, const char *to) {
     std::ofstream to_file(to);
     if (from_file.is_open() && to_file.is_open()) {
         ot::zlib <std::ofstream> compressor(to_file);
-        compressor.init_compression(ot::GZIP);
+        compressor.init_deflate(ot::GZIP);
         do {
             char buff[1024] = {};
             from_file.read(buff, 1024);
@@ -61,6 +61,10 @@ void compress(const char *from, const char *to) {
 }
 
 ```
+
+Same buffer compression, working on it.
+
+
 
 ## PostgreSQL - libpq
 

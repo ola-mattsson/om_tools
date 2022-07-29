@@ -12,7 +12,7 @@ target_link_libraries(zlib_example
 
 add_executable(zlib_example_same_buffer)
 # doesn't work properly, don't run test until it does
-#add_test(zlib_example_same_buffer zlib_example_same_buffer)
+add_test(zlib_example_same_buffer zlib_example_same_buffer)
 target_sources(zlib_example_same_buffer
         PRIVATE
         zlib_example_same_buffer.cpp
