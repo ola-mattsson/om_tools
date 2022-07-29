@@ -1,7 +1,7 @@
 # this is my toolbox
 
 Small, more or less self-contained C++ wrappers of some C apis and types.
-Main reason is cleanup and complexity, NOT OOP modelling, go somewhere else for that stuff.
+Main reason is cleanup and complexity, not OOP modelling.
 
 This is work in progress, donno if it will ever be in a _finished_ state. Might still be useful to somebody
 
@@ -9,7 +9,12 @@ This is work in progress, donno if it will ever be in a _finished_ state. Might 
 Some intentions:
 1. Header only
 2. Simple/straight forward to start using.
-3. Tests are examples and documentation
+3. Use fancy C++ stuff things when they help, makes sense and improve readability. This is not a C++ pageant.
+4. Tests are examples and documentation
+
+C++98 is still a thing in places, sadly one might say byt that's just opinion, you can do nice things in 98 too, 
+Some of the wrappers require higher C++ std newer than 98, particularly the descriptors since the core solution is using move semantics. So once in I used optional and string_view, unique_ptr and some language features earlier requiring boost.
+The descriptors can probably be done with C++98 as well but I choose not to. `#if`'ing it in would just be messy and horrible, I want the wrappers to be readable and maintainable.
 
 This project has a bunch of dependencies, some are for what they wrap, like libz, others are for tests and examples.
 

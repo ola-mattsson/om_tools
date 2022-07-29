@@ -129,20 +129,6 @@ namespace om_tools {
 #if __cplusplus >= 201103L
     inline namespace  v1_0_0 {
 #endif
-        // helper class to write to a std::string you supply
-        class string_writer {
-            std::string &s;
-        public:
-            explicit string_writer(std::string &ins) : s(ins) {}
-
-            void write(const char *b, size_t size) NOTHROW {
-                try {
-                    s.append(b, size);
-                } catch (const std::exception &e) {
-                    std::cout << e.what() << '\n';
-                }
-            };
-        };
 
         static const size_t COMP_CHUNK = 1024 * 16;
         enum FORMAT {
@@ -315,6 +301,22 @@ namespace om_tools {
                 return *this;
             }
         };
+
+        // helper class to write to a std::string you supply
+        class string_writer {
+            std::string &s;
+        public:
+            explicit string_writer(std::string &ins) : s(ins) {}
+
+            void write(const char *b, size_t size) NOTHROW {
+                try {
+                    s.append(b, size);
+                } catch (const std::exception &e) {
+                    std::cout << e.what() << '\n';
+                }
+            };
+        };
+
 
         // another example, IN and OUT needs to implement
         // read and write, like ifstream/ofstream.
