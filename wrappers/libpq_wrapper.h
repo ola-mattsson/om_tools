@@ -40,8 +40,6 @@
 
 #include <iostream>
 #include <vector>
-#include <sstream>
-#include <zconf.h>
 
 // stop linters complaining about NULL for pre C++11 standards
 #if __cplusplus < 201103L

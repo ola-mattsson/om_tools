@@ -21,8 +21,7 @@ void compress(const char *from, const char *to) {
     std::ifstream from_file(from);
     std::ofstream to_file(to);
     if (from_file.is_open() && to_file.is_open()) {
-        ot::zlib <std::ofstream> compressor(to_file);
-        compressor.init_deflate(ot::GZIP);
+        ot::zlib_deflator<std::ofstream> compressor(to_file);
         do {
             char buff[1024] = {};
             from_file.read(buff, 1024);
@@ -41,8 +40,7 @@ int main() {
         if (read_this.is_open()) {
             std::ofstream compressed("Makefile.gz");
 
-            ot::zlib<std::ofstream> deflator(compressed);
-            deflator.init_deflate(ot::GZIP);
+            ot::zlib_deflator<std::ofstream> deflator(compressed);
 
             do {
                 char buff[BUFF_SIZE] = {};
@@ -61,8 +59,6 @@ int main() {
             // the zlib_helpers destructor has finished/flushed.
             // i.e. it is safe to just let the target and the zlib_helper
             // auto destruct.
-
-            std::cout << "done compressing the file, well actually will be after the {\n";
         }
     }
 
@@ -73,8 +69,7 @@ int main() {
         std::ifstream read_this("Makefile.gz");
         if (read_this.is_open()) {
             ot::string_writer to_this(str);
-            ot::zlib<ot::string_writer> inflator(to_this);
-            inflator.init_inflate(ot::GZIP);
+            ot::zlib_inflator<ot::string_writer> inflator(to_this);
             do {
                 char buff[BUFF_SIZE] = {};
                 read_this.read(buff, BUFF_SIZE);
@@ -96,8 +91,7 @@ int main() {
     // the compressor is finished and the file is closed manually below
     std::ifstream read_from_this("Makefile.gz");
     std::ofstream write_to_this("Makefile_decomp");
-    ot::zlib<std::ofstream> decomp(write_to_this);
-    decomp.init_inflate(ot::GZIP);
+    ot::zlib_inflator<std::ofstream> decomp(write_to_this);
     do {
         char buff[BUFF_SIZE] = {};
         read_from_this.read(buff, BUFF_SIZE);
@@ -114,8 +108,7 @@ int main() {
         std::ifstream in_thing("Makefile");
         std::ofstream out_thing("Makefile.gz");
         if (in_thing.is_open() && out_thing.is_open()) {
-            ot::zlib<std::ofstream> compressor(out_thing);
-            compressor.init_deflate(ot::GZIP);
+            ot::zlib_deflator<std::ofstream> compressor(out_thing);
             do {
                 char buff[1024] = {};
                 in_thing.read(buff, 1024);
@@ -123,7 +116,4 @@ int main() {
             } while (!in_thing.eof());
         }
     }
-
-
-    std::cout << "done\n";
 }

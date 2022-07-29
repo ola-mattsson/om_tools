@@ -253,14 +253,14 @@ namespace om_tools {
             EXPLICIT operator bool() const { return initialised; }
 
             // Initialise the object for compression
-            zlib &init_deflate(FORMAT compression_format = DEFLATE,
+            zlib &init_deflate(FORMAT compression_format = GZIP,
                                int compression_level = Z_DEFAULT_COMPRESSION) NOTHROW {
                 direction = DEFLATING;
                 return initialise(compression_format, compression_level);
             }
 
             // Initialise the object for decompression
-            zlib &init_inflate(FORMAT compression_format = DEFLATE,
+            zlib &init_inflate(FORMAT compression_format = GZIP,
                                int compression_level = Z_DEFAULT_COMPRESSION) NOTHROW {
                 direction = INFLATING;
                 return initialise(compression_format, compression_level);
@@ -299,6 +299,23 @@ namespace om_tools {
 
                 direction = UNDECIDED;
                 return *this;
+            }
+        };
+
+        // convenience constructors
+        template<class OUT>
+        struct zlib_deflator : public zlib<OUT> {
+            explicit zlib_deflator(OUT& out, FORMAT compression_format = GZIP,
+                          int compression_level = Z_DEFAULT_COMPRESSION) : zlib<OUT>(out) {
+                this->init_deflate(compression_format, compression_level);
+            }
+        };
+
+        template<class OUT>
+        struct zlib_inflator : public zlib<OUT>  {
+            explicit zlib_inflator(OUT& out, FORMAT compression_format = GZIP,
+                          int compression_level = Z_DEFAULT_COMPRESSION) : zlib<OUT>(out) {
+                this->init_inflate(compression_format, compression_level);
             }
         };
 
@@ -343,6 +360,9 @@ namespace om_tools {
             void truncate() {
                 str.resize(offset);
             }
+            static bool maybe_gzip_deflated(std::istream& data_stream);
+            static bool maybe_gzip_deflated(const char* three_bytes);
+
         };
 
 
@@ -362,9 +382,44 @@ namespace om_tools {
 #if __cplusplus >= 201103L
     }
 #endif
+        /**
+         * See if the buffer starts with 3 particular bytes. This is not a full proof
+         * test but those bytes are rather unusual in text data so the false negative
+         * should be a rare occurrence.
+         * The 3:rd byte is 08 if the gzip is DEFLATED so not strictly the gzip header
+         * but this is what `tar zcf` does for example.
+         * The purpose of this test is to check if data may be risky to compress into
+         * it self, there are a lot of compression formats that may make inplace
+         * compression less safe.
+         *
+         * So, if you know your data, go ahead compress in place but be careful.
+         *
+         * @param a std::istream
+         * @return
+         */
+        bool same_string_writer::maybe_gzip_deflated(const char* three_bytes) {
+            static const char gzip_header[] = {'\x1f', '\x8b', '\x08'};
+
+            return three_bytes[0] == gzip_header[0] &&
+                   three_bytes[1] == gzip_header[1] &&
+                   three_bytes[2] == gzip_header[2];
+        }
+
+        bool same_string_writer::maybe_gzip_deflated(std::istream& data_stream) {
+            char three_bytes[3] = {};
+            data_stream.read(three_bytes, 3);
+            data_stream.seekg(0, std::ios::beg);
+
+            return maybe_gzip_deflated(three_bytes);
+        }
+
     }
 // export names to namespace om_tools
 using zlib_helper::string_writer;
 using zlib_helper::zlib;
-using zlib_helper::FORMAT;
+using zlib_helper::zlib_deflator;
+using zlib_helper::zlib_inflator;
+using zlib_helper::same_string_writer;
+using zlib_helper::GZIP;
+using zlib_helper::DEFLATE;
 }
