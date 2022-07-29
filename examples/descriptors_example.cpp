@@ -1,13 +1,15 @@
 
+#include "socket_descriptor.hpp"
+#include "file_descriptor.hpp"
+#include <sys/file.h>
+#include <unistd.h>
+
 #include <iostream>
 #include <vector>
 #include <array>
 #include <string_view>
 #include <thread>
 #include <optional>
-
-#include <descriptors.h>
-#include <sys/file.h>
 
 std::atomic<bool> server_up = false;
 
@@ -20,17 +22,6 @@ int main(int argc, char **argv) {
     inet_socket(args);
 
     file_socket();
-
-
-    using fd = om_tools::file_descriptor;
-    fd a;                       // file_descriptor
-//    fd b = a;  // no assign
-//    fd b1(a);  // no copy
-    auto c = fd();              // file_descriptor move
-    auto d = fd(open("", 0));   // file_descriptor move
-    auto e(fd(open("", 0)));    // file_descriptor move
-    auto f = open("", 0);       // int
-    fd g(f);                    // file_descriptor move
 }
 
 /**
@@ -40,10 +31,11 @@ int main(int argc, char **argv) {
  * will invalidate the original object so it doesn't close the file when this scope closes.
  * @param name file name
  * @param open flags
+ * @param mode access of the new file
  * @return the new file_descriptor object
  */
-om_tools::file_descriptor open_file(std::string_view name, int32_t flags) {
-    om_tools::file_descriptor file_d(open(name.data(), flags));
+om_tools::file_descriptor open_file(std::string_view name, int32_t flags, int32_t mode) {
+    om_tools::file_descriptor file_d(open(name.data(), flags, mode));
     if (!file_d.valid()) {
         perror("open");
         // return a new, invalid
@@ -65,7 +57,7 @@ om_tools::file_descriptor open_file(std::string_view name, int32_t flags) {
  * Calling open_file is ofc pointless here.
  */
 void file_socket() {
-    auto file_d = open_file("a_file.txt", O_WRONLY);
+    auto file_d = open_file("a_file.txt", O_CREAT | O_RDWR, S_IRUSR | S_IWUSR);
     if (file_d.valid()) {
         std::string_view data = "Something important";
         write(file_d.get(), data.data(), data.size());
@@ -97,11 +89,12 @@ void inet_socket(const std::vector<const std::string_view> &args) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
 
-        auto client = om_tools::socket_fd::create_client_socket("127.0.0.1", "12345");
+        auto client = om_tools::socket_fd::create_client_socket("0.0.0.0", "12345");
 
         if (client.valid()) {
             std::array<char, 10> buff{};
-            auto rcv_bytes = read(client.get(), &buff[0], 10);
+            std::cout << buff.size() << "\n";
+            auto rcv_bytes = read(client.get(), &buff[0], buff.size());
             std::cout << "client rcv bytes: " << rcv_bytes << " content: " << buff.data() << '\n';
         }
     };
@@ -115,7 +108,7 @@ void inet_socket(const std::vector<const std::string_view> &args) {
     using optional_threads = std::pair<std::optional<std::thread>, std::optional<std::thread>>;
 
     auto [server, client] = [&](auto &&args) -> optional_threads {
-        switch (args.empty() ? 3 : args.at(1)[0]) {
+        switch (args.size() == 1 ? '3' : args.at(1)[0]) {
             case SERVER:
                 return {std::thread(server_worker), std::nullopt};
             case CLIENT:
