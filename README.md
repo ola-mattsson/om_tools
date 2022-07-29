@@ -62,9 +62,9 @@ void compress(const char *from, const char *to) {
 
 ```
 
-## libpq
+## PostgreSQL - libpq
 
-All libpg C++ libraries seems to be C++11 or higher, I needed one for 98.
+All libpg C++ libraries seems to require C++11 or higher, I needed one for 98.
 This example does a simple select, passes a parameter and extracts the result.
 `scoped_result` will free the PGresult data when going out of scope or is given new data.
 
@@ -86,7 +86,8 @@ This example does a simple select, passes a parameter and extracts the result.
 ## Descriptors
 File and socket descriptors.
 
-Wrapping a descriptor (int) has one problem, a factory function needs to return a valid object holding the int and let the caller close it when ITs scope finishes, i.e. not closing when the factory function ends. hmm, move semantics to the rescue. 
+Wrapping a descriptor (int) has one problem, for example a factory function like the below, needs to return a valid object holding the int and let the caller close it when ITs scope finishes, i.e. not closing when the factory function ends. hmm, move semantics to the rescue. 
+
 These objects can be passed around safely and will be closed, if valid, when going out of scope. When assigned from each other and returned from functions they are moved and the original will be invalidated, so they don't accidentally close.
 
 Why not use copy constructor/copy assignment to do the same thing? One could, but this would be too weird, assigning one with another invalidates the original, this would surprise the user which is bad. There are probably ways to do that too but this works as intended.
@@ -110,3 +111,8 @@ om_tools::file_socket open_file(std::string_view name, int32_t flags) {
 ```
 
 The inet socket example is a bit big for this readme but the essentials concerning descriptors are the same as the file example.
+
+Have fun and let me know if something is bad, odd or whatever questions you may have.
+
+### Todo
+Use a test framework for the tests. This will surely inspire some redesign, since I didn't to this first.
