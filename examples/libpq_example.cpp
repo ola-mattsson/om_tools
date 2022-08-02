@@ -3,46 +3,28 @@
  *
 */
 
-#include <libpq_wrapper.h>
+#include <libpq.hpp>
 #include <boost/lexical_cast.hpp>
+#include <connection_pool.hpp>
 
 namespace ot = om_tools::libpq_helper;
+using namespace om_tools::connection_pool;
+//namespace op = om_tools::libpq_helper;
 
-/**
- * connect to default db on localhost, current user, default port...
- *  make sure you have postgres running and there is a user with with the same name as $USER
- *  This is only one db global connection. That's not efficient for example for a webserver
- *  accepting multiple clients simultaneously.
- *  Do one of 2 things, protect the global single connection from being used
- *  more than once at the time OR make a connection pool so every client has it's own
- *  connection but they are reused which makes for better performance
- */
-ot::connection& default_connection(bool verify = false) {
-    // add params to suite your environment
-    static ot::connection conn("host=localhost");
-    if (!conn) {
-        std::cout << "No connection\n";
-    }
-
-    if (verify) {
-        ot::scoped_result result(conn.exec("SELECT 1"));
-        if (!result) {
-            std::cout << "No connection\n";
-        }
-    }
-    return conn;
-}
+typedef Pool<ot::PGConnection> pg_pool;
 
 void create_a_table() {
-    ot::connection &conn = default_connection();
+    auto conn = pg_pool::get_entry();
 
-    boost::string_view stmt = "create table a ("
+    boost::string_view stmt = "create table c ("
                               "id integer not null unique,"
                               "c char(8),"
                               "i integer,"
-                              "cc char(20))";
-    ot::scoped_result result;
-    result = conn.exec(stmt);
+                              "cc char(20),"
+                              "insert_ts TIMESTAMP (2) NOT NULL DEFAULT CURRENT_TIMESTAMP(2)"
+                              ")";
+    ot::Scoped_result result;
+    result = conn->exec(stmt);
     if (!result) {
         std::cout << "Failed to create table\n";
         return;
@@ -50,13 +32,13 @@ void create_a_table() {
 }
 
 void insert_this(int32_t id, const char* s, int32_t i, const char* ss) {
-    std::string stmt("insert into a values($1, $2, $3, $4);");
+    std::string stmt("insert into c values($1, $2, $3, $4);");
 
-    ot::params params;
+    ot::Params params;
     params.add(id).add(s).add(i).add(ss);
 
-    ot::scoped_result result;
-    result = default_connection().exec(stmt, params);
+    ot::Scoped_result result;
+    result = pg_pool::get_entry()->exec(stmt, params);
 
     if (!result) {
         std::cout << "insert failed\n";
@@ -75,10 +57,10 @@ void create_data() {
 }
 
 void pass_params() {
-    std::string stmt = "select i, c, id, cc from a where id = $1;";
-    ot::params params;
+    std::string stmt = "select i, c, id, cc from c where id = $1;";
+    ot::Params params;
     params.add(2);
-    ot::scoped_result result(default_connection().exec(stmt, params));
+    ot::Scoped_result result(pg_pool::get_entry()->exec(stmt, params));
 
     if (result) {
         // get what ever type from the value
@@ -94,25 +76,25 @@ void pass_params() {
         std::cout << s << '|' << i << ' ' << i_s << ' ' << c << ' ' << cc << '\n';
     }
 
-    stmt = "select id, cc from a where c = $1";
+    stmt = "select id, cc from c where c = $1";
     params.clear().add("3");
-    result = default_connection().exec(stmt, params);
+    result = pg_pool::get_entry()->exec(stmt, params);
     if (result) {
         std::cout << result.get_value<int>(0,0) << ' ' << result.get_value<std::string>(0,1)<< '\n';
     }
 }
 
 void print_all() {
-    std::string stmt = "select * from a";
-    ot::scoped_result result(default_connection().exec(stmt));
+    std::string stmt = "select * from c";
+    ot::Scoped_result result(pg_pool::get_entry()->exec(stmt));
     result.list_tuples();
 }
 
 void count() {
-    std::string stmt = "select count(*), max(art) from iwaaa";
-    ot::scoped_result result(default_connection().exec(stmt));
+    std::string stmt = "select count(*), max(i) from c";
+    ot::Scoped_result result(pg_pool::get_entry()->exec(stmt));
     if (result) {
-        ot::scoped_result::row_iterator iter = result.begin();
+        ot::Scoped_result::row_iterator iter = result.begin();
         std::cout << iter.get<int>(0) << '|' << iter.get<int>(1) <<  '\n';
     }
 }
@@ -120,8 +102,8 @@ void count() {
 bool has_data() {
     const char stmt[] = "SELECT EXISTS ("
                         "   SELECT FROM information_schema.tables"
-                        "   WHERE table_name = 'a')";
-    ot::scoped_result result(default_connection().exec(stmt));
+                        "   WHERE table_name = 'c')";
+    ot::Scoped_result result(pg_pool::get_entry()->exec(stmt));
 
     if (!result) {
         return false;
@@ -130,8 +112,21 @@ bool has_data() {
         return exists == 't';
     }
 }
-void varchars() {
-    ot::scoped_result result(default_connection().exec("select * from b"));
+
+void timestamps() {
+    ot::Scoped_result result(pg_pool::get_entry()->exec("select extract (epoch from insert_ts) from c"));
+    if (result) {
+        ot::Timestamp timestamp = result.get_value<ot::Timestamp>(0,0);
+        std::cout << timestamp << ' '
+                << timestamp.to_time_t() << ' '
+                << timestamp.to_timestamp_string()
+                << '\n';
+    }
+    std::cout << "done\n";
+}
+
+[[maybe_unused]] void varchars() {
+    ot::Scoped_result result(pg_pool::get_entry()->exec("select * from c"));
     if (result) {
         std::string v = result.get_value<std::string>(0, 0);
         std::string c = result.get_value<std::string>(0, 1);
@@ -145,9 +140,13 @@ int main() {
             create_data();
         }
 //        varchars(); todo create a table for this test
+        timestamps();
         pass_params();
         print_all();
         count();
+        if (pg_pool::get_entry()->test_connection()) {
+            std::cout << "connection is fine\n";
+        }
     } catch (const std::exception& e) {
         std::clog << "Upps " << e.what() << '\n';
     }

@@ -1,18 +1,17 @@
-# this is my toolbox
+# This is my toolbox
 
 Small, more or less self-contained C++ wrappers of some C apis and types.
-Main reason is cleanup and complexity, not OOP modelling.
+Main objective is cleanup and complexity, not OOP modelling.
 
 This is work in progress, donno if it will ever be in a _finished_ state. Might still be useful to somebody
-
 
 Some intentions:
 1. Header only
 2. Simple/straight forward to start using.
-3. Use fancy C++ stuff things when they help, makes sense and improve readability. This is not a C++ pageant.
+3. ONLY use fancy C++ stuff things when they help, makes sense and improve readability. This is not a C++ pageant.
 4. Tests are examples and documentation
 
-C++98 is still a thing in places, sadly one might say byt that's just opinion, you can do nice things in 98 too, 
+C++98 is still a thing in places, sadly one might say but that's just opinion, you can do nice things in 98 too, 
 Some of the wrappers require higher C++ std newer than 98, particularly the descriptors since the core solution is using move semantics. So once in I used optional and string_view, unique_ptr and some language features earlier requiring boost.
 The descriptors can probably be done with C++98 as well but I choose not to. `#if`'ing it in would just be messy and horrible, I want the wrappers to be readable and maintainable.
 
@@ -25,14 +24,17 @@ There is a conanfile.py, but you don't have to use it. Some dependencies have Fi
 
 ## Curl
 
-Uses all the well known options and structures declared by curl but in a slightly cleaner way. 
-This example is compact but "hides" nothing other than the actual freeing of the curl object, the C++ way.
+I'm sure curlpp is fantastic, a bit too fantastic IMHO.
+
+This class uses all the well known options and structures declared by curl but in a slightly cleaner way (yes opinion - mine). If you are familiar with the original libcurl C api, there should be few surprises here.
+
+This example is compact but "hides" nothing other than the actual freeing of the curl object, the C++ way, oh and pass true to the Curl_handle(bool verbose) to get just that, verbose logging.
 ```c++
 const char* headers[] = {"Content-Type: application/text", "charset: utf-8", ""};
 const curl_slist_handle slist(headers);
 bool success =
     Curl_handle()
-        .set_option(CURLOPT_WRITEFUNCTION, write_data)
+        .set_option(CURLOPT_WRITEFUNCTION, write_data) // pointer to a writer function you provide
         .set_option(CURLOPT_HTTPHEADER, slist.get())
         .set_option(CURLOPT_what_ever_you_need, the values)
         .perform()
@@ -118,5 +120,5 @@ The inet socket example is a bit big for this readme but the essentials concerni
 
 Have fun and let me know if something is bad, odd or whatever questions you may have.
 
-### Todo
-Use a test framework for the tests. This will surely inspire some redesign, since I didn't to this first.
+Btw, did I mention that I'm not a framework writer, Some of this stuff is what I write when needed and that gets tedious sometimes, publishing these tools helps getting my act together, pushing the quality a bit.
+

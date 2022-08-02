@@ -1,4 +1,4 @@
-#include <curl_wrapper.h>
+#include <curl.hpp>
 #include <fstream>
 #include <curl/curl.h>
 
@@ -27,7 +27,7 @@ int if_you_like_stacked_oneliners();
 int much_like_the_original_example();
 
 int main() {
-    om_tools::curl_helper::curl_initialise init;
+    om_tools::curl_helper::Curl_initialise init;
     if_you_like_stacked_oneliners();
     much_like_the_original_example();
 }
@@ -42,7 +42,7 @@ int much_like_the_original_example() {
                       "Web/HTTP/Basics_of_HTTP/MIME_types/Common_types";
 
     /* set URL to get here */
-    curl_handle.set_option(CURLOPT_URL, url.c_str());
+    curl_handle.set_option(CURLOPT_URL, url);
 
     /* disable progress meter, set to 0L to enable it */
     curl_handle.set_option(CURLOPT_NOPROGRESS, 1L);
@@ -52,7 +52,7 @@ int much_like_the_original_example() {
 
     /* some headers, just to show the curl_list_handle utility*/
     const char *headers[] = {"Content-Type: application/text", "charset: utf-8", ""};
-    const otc::curl_slist_handle slist(headers);
+    const otc::Curl_slist_handle slist(headers);
     curl_handle.set_option(CURLOPT_HTTPHEADER, slist.get());
 
     /* open the file */
@@ -82,7 +82,7 @@ int if_you_like_stacked_oneliners() {
         return 1;
     }
     const char *headers[] = {"Content-Type: application/text", "charset: utf-8", ""};
-    const otc::curl_slist_handle slist(headers);
+    const otc::Curl_slist_handle slist(headers);
 
     if (otc::Curl_handle()
         .set_option(CURLOPT_HTTPHEADER, slist.get())

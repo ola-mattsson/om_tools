@@ -20,7 +20,7 @@
 #include <vector>
 #include <fstream>
 #include <sstream>
-#include <zlib_wrapper.h>
+#include <zlib.hpp>
 
 namespace ot = om_tools;
 

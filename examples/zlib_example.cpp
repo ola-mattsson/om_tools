@@ -14,7 +14,7 @@
 #include <iostream>
 #include <sstream>
 #include <fstream>
-#include <zlib_wrapper.h>
+#include <zlib.hpp>
 
 void compress(const char *from, const char *to) {
     namespace ot = om_tools::zlib_helper;

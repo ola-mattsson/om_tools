@@ -101,6 +101,7 @@ void example() {
 #include "SYS$COMMON:[libz]zlib.h"
 #else
 
+#include <cstring>
 #include <zlib.h>
 
 #endif

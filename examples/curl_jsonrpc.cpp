@@ -1,4 +1,4 @@
-#include <curl_wrapper.h>
+#include <curl_wrapper.hpp>
 #include <sstream>
 #include <curl/curl.h>
 #include <boost/uuid/name_generator.hpp>
@@ -38,7 +38,7 @@ std::string make_jsonrpc() {
     return ss.str();
 }
 
-int test_send() {
+int test_send(boost::string_view host) {
     namespace otc = om_tools::curl_helper;
 
     std::string json = make_jsonrpc();
@@ -52,7 +52,7 @@ int test_send() {
                              ""};
     const otc::curl_slist_handle slist(headers);
     curl_handle.set_option(CURLOPT_HTTPHEADER, slist.get())
-                .set_option(CURLOPT_URL, "http://somehost")
+                .set_option(CURLOPT_URL, host.data())
                 .set_option(CURLOPT_POSTFIELDS, json.c_str())
                 .set_option(CURLOPT_POSTFIELDSIZE, json.size());
 
@@ -63,12 +63,15 @@ int test_send() {
     return 0;
 }
 
-int main() {
+int32_t main(int32_t argc, char** argv) {
+    if (argc < 2) {
+        return EXIT_FAILURE;
+    }
     om_tools::curl_helper::curl_initialise init;
 
     for (int i = 0; i < 1000; ++i) {
         for (int j = 0; j < 2; ++j) {
-            test_send();
+            test_send("http://somehost");
         }
         sleep(1);
     }

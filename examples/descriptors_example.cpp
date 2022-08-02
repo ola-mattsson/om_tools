@@ -1,5 +1,5 @@
 
-#include "socket_descriptor.hpp"
+#include "ip_socket.hpp"
 #include "file_descriptor.hpp"
 #include <sys/file.h>
 #include <unistd.h>
@@ -10,16 +10,24 @@
 #include <string_view>
 #include <thread>
 #include <optional>
-
-std::atomic<bool> server_up = false;
+#include <atomic>
 
 void file_socket();
-void inet_socket(const std::vector<const std::string_view> &args);
+void unix_socket(std::vector<std::string_view> &args);
+void inet_socket(std::vector<std::string_view> &args);
 
-int main(int argc, char **argv) {
-    const std::vector<const std::string_view> args(argv, argv + argc);
+int32_t main(int32_t argc, const char **argv) {
+    std::vector<std::string_view> args(argv, argv + argc);
 
+    std::cout << "unix domain socket\n";
+    unix_socket(args);
+    std::cout << "------------\n";
+
+    std::cout << "tcp socket\n";
     inet_socket(args);
+    std::cout << "------------\n";
+
+    std::cout << "Sockets done\n";
 
     file_socket();
 }
@@ -68,32 +76,98 @@ void file_socket() {
  * create a client thread, a server thread or both so they can talk to each other
  * @param args a vector of args
  */
-void inet_socket(const std::vector<const std::string_view> &args) {
+void unix_socket(std::vector<std::string_view> &args) {
 
-    auto server_worker = []() {
-        auto server = om_tools::socket_fd::create_server_socket("12345");
+    std::atomic<bool> server_up = false;
+    std::string_view name("unix_socket_example.server");
+
+    auto server_worker = [&server_up, name]() {
+        auto server = om_tools::Socket::create_uds_server_socket(name);
         while (server.valid()) {
             server_up = true;
             auto client = server.wait_request();
             if (client.valid()) {
-                auto write_result = write(client.get(), "HEJ", 3);
+                std::string_view msg("This is the message");
+                auto write_result = write(client.get(), msg.data(), msg.size());
                 std::cout << "Server sent " << write_result << " bytes\n";
                 break;
             }
         }
     };
 
-    auto client_worker = []() {
+    auto client_worker = [&server_up, name]() {
         // hack to make sure server thread is up
         while (!server_up) {
             std::this_thread::sleep_for(std::chrono::milliseconds(20));
         }
 
-        auto client = om_tools::socket_fd::create_client_socket("0.0.0.0", "12345");
+        auto client = om_tools::Socket::create_uds_client_socket(name);
 
         if (client.valid()) {
-            std::array<char, 10> buff{};
-            std::cout << buff.size() << "\n";
+            std::array<char, 100> buff{};
+            auto rcv_bytes = read(client.get(), &buff[0], buff.size());
+            std::cout << "client rcv bytes: " << rcv_bytes << " content: " << buff.data() << '\n';
+        }
+    };
+
+    enum {
+        SERVER = '1',
+        CLIENT = '2',
+        SERVER_AND_CLIENT = '3'
+    };
+
+    using optional_threads = std::pair<std::optional<std::thread>, std::optional<std::thread>>;
+
+    auto [server, client] = [&](auto &&args) -> optional_threads {
+        switch (args.size() == 1 ? '3' : args.at(1)[0]) {
+            case SERVER:
+                return {std::thread(server_worker), std::nullopt};
+            case CLIENT:
+                return {std::nullopt, std::thread(client_worker)};
+            case SERVER_AND_CLIENT:
+            default:
+                return {std::thread(server_worker), std::thread(client_worker)};
+        }
+    }(args);
+
+    if (server) server->join();
+    if (client) client->join();
+
+    std::cout << "done\n";
+}
+
+/**
+ * create a client thread, a server thread or both so they can talk to each other
+ * @param args a vector of args
+ */
+void inet_socket(std::vector<std::string_view> &args) {
+
+    std::atomic<bool> server_up = false;
+
+    auto server_worker = [&server_up]() {
+        auto server = om_tools::Socket::create_tcp_server_socket("12345");
+        while (server.valid()) {
+            server_up = true;
+            auto client = server.wait_request();
+            if (client.valid()) {
+                std::string_view msg("This is the message");
+                auto write_result = write(client.get(), msg.data(), msg.size());
+                std::cout << "Server sent " << write_result << " bytes\n";
+                break;
+            }
+        }
+    };
+
+    auto client_worker = [&server_up]() {
+        // hack to make sure server thread is up
+        while (!server_up) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(20));
+        }
+
+        auto client = om_tools::Socket::create_tcp_client_socket("0.0.0.0", "12345");
+
+        if (client.valid()) {
+            std::array<char, 100> buff{};
             auto rcv_bytes = read(client.get(), &buff[0], buff.size());
             std::cout << "client rcv bytes: " << rcv_bytes << " content: " << buff.data() << '\n';
         }

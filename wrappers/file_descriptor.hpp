@@ -1,6 +1,6 @@
 #pragma once
 
-#include "descriptor_base.h"
+#include "descriptor_base.hpp"
 namespace om_tools {
 namespace descriptors {
 inline namespace v1_0_0 {
@@ -12,7 +12,7 @@ inline namespace v1_0_0 {
 */
 
 
-using file_descriptor = om_tools::descriptor_base<int32_t>;
+using file_descriptor = om_tools::Descriptor_base<int32_t>;
 
 
 }

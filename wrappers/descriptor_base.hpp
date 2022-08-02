@@ -14,66 +14,71 @@
  */
 
 #include <unistd.h>
-#include <netdb.h>
 
 namespace om_tools {
 namespace descriptors {
+
+#if __cplusplus >= 201103L
 inline namespace v1_0_0 {
+#endif
 
 template<typename DESCRIPTOR_TYPE, DESCRIPTOR_TYPE INVALID = -1>
-struct descriptor_base {
+struct Descriptor_base {
     using descriptor_type = DESCRIPTOR_TYPE;
     static const descriptor_type invalid_socket = INVALID;
 private:
-    descriptor_type fd{invalid_socket};
+    descriptor_type m_fd{invalid_socket};
 public:
-    descriptor_base() = default;
+    Descriptor_base() = default;
 
-    explicit descriptor_base(descriptor_type fd_) : fd(fd_) {}
+    explicit Descriptor_base(descriptor_type fd) : m_fd(fd) {}
 
     // cannot be copied
-    explicit descriptor_base(const descriptor_base &) = delete;
+    explicit Descriptor_base(const Descriptor_base &) = delete;
 
     // can be moved, the source will be invalidated
-    descriptor_base(descriptor_base &&other) noexcept {
-        fd = other.fd;
-        other.fd = -1;
+    Descriptor_base(Descriptor_base &&other) noexcept {
+        m_fd = other.m_fd;
+        other.m_fd = -1;
     }
 
     // close if valid
-    ~descriptor_base() { if (valid()) { close(); }}
+    ~Descriptor_base() { if (valid()) { close(); }}
 
     // cannot be copy assigned
-    descriptor_base &operator=(const descriptor_base &other) = delete;
+    Descriptor_base &operator=(const Descriptor_base &other) = delete;
 
     // can be move-assigned, the source will be invalidated
-    descriptor_base &operator=(descriptor_base &&other) noexcept {
-        fd = other.fd;
-        other.fd = -1;
+    Descriptor_base &operator=(Descriptor_base &&other) noexcept {
+        m_fd = other.m_fd;
+        other.m_fd = -1;
         return *this;
     }
 
     constexpr void set(descriptor_type desc) {
-        fd = desc;
+        m_fd = desc;
     }
     [[nodiscard]]
     constexpr descriptor_type get() const {
-        return fd;
+        return m_fd;
     }
 
     constexpr void close() const {
-        ::close(fd);
+        ::close(m_fd);
     }
 
     [[nodiscard]]
-    constexpr bool valid() const { return fd != invalid_socket; }
+    constexpr bool valid() const { return m_fd != invalid_socket; }
 
-    constexpr explicit operator descriptor_type() const { return fd; }
+    constexpr explicit operator descriptor_type() const { return m_fd; }
 
 };
 
+#if __cplusplus >= 201103L
 }
+#endif
+
 }
 // export to om_tools
-using descriptors::descriptor_base;
+using descriptors::Descriptor_base;
 }
